@@ -21,7 +21,6 @@ from docopt import docopt
 import pandas as pd
 from rpy2.robjects.packages import importr
 from rpy2.robjects.vectors import FloatVector
-from pybedtools import BedTool
 stats = importr('stats')
 
 
