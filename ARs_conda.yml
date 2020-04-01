@@ -1,0 +1,17 @@
+name: ARs_conda_env
+channels:
+  - bioconda
+  - defaults
+dependencies:
+  - openssl=1.0.2p
+  - ucsc-mafspeciessubset
+  - java-jdk
+  - bedtools
+  - python=3.7
+  - docopt
+  - pandas
+  - numpy
+  - rpy2
+  - pybedtools
+prefix: /pollard/home/kathleen/miniconda3/envs/ucsc_tool_env
+

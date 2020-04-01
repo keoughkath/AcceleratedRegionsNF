@@ -1,0 +1,18 @@
+# typical project.yml template
+# make a copy of this for each project and adjust the parameters accordingly
+
+params.species = "path_to_species_list/species.lst"
+params.maf_path = "path_to_mafs/"
+params.phast_path = "path_to_phast/phast/bin/"
+params.gtf_path = "path_to_chromosome_gtfs/hg38_gtf_files"
+params.outdir = "output_dir/outfiles"
+params.init_tree = "initial_newick_tree/hg38.100way.nh"
+params.species_of_interest = "hg38"
+params.chrom_bed_path = "path_to_chrom_sizes_beds/chrom_beds/"
+params.synteny_filter_dog = "path_to_dog_synteny/dog_hg38.sorted.bed.gz" 
+params.synteny_filter_rhesus = "path_to_rhesus_synteny/rhesus_hg38.sorted.bed.gz" 
+params.synteny_filter_mouse = "path_to_mouse_synteny/mouse_hg38.sorted.bed.gz" 
+params.ar_filters_path = "path_to_filters/har_filters.sorted.bed.gz"
+params.n_phylop_chunks = "100"
+params.max_p = "0.01"
+params.random_seed = "1"
