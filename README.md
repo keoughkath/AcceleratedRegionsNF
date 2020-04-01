@@ -13,4 +13,4 @@ How to call accelerated regions with this pipeline:
 
 4.) adjust the nextflow config file to match your operating environment (optionally add an additional config file to match a parallel system such as SGE)
 
-5.) run the pipeline (sample command: `nextflow run call_ARs.nf -w "output_dir" -profile local -params-file project.yml`
+5.) run the pipeline (sample command: `nextflow run call_ARs.nf -w "output_dir" -profile local -params-file project.yml`)
