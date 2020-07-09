@@ -26,6 +26,9 @@ process extractSpecies {
 
 	// publishDir params.outdir, mode: "copy", overwrite: false
 
+	errorStrategy 'retry'
+	maxRetries 3
+
 	input:
 	file(species_list_file) from speciesFile
 	file(initMaf) from initMafChannel
@@ -82,6 +85,9 @@ process extract4dCodons {
 
 	// publishDir params.outdir, mode: "copy", overwrite: true
 
+	errorStrategy 'retry'
+	maxRetries 3
+
 	input:
 	file(maf) from speciesMafOne
 
@@ -107,6 +113,9 @@ process extract4dSites{
 	tag "Extracting 4D sites for ${chrom}"
 
 	// publishDir params.outdir, mode: "copy", overwrite: true
+
+	errorStrategy 'retry'
+	maxRetries 3
 
 	input:
 	file(codons) from fourDCodons
@@ -141,6 +150,9 @@ process aggregateAutosome4dSites {
 
 	// publishDir params.outdir, mode: "copy", overwrite: true
 
+	errorStrategy 'retry'
+	maxRetries 3
+
 	input:
 	val(species_list) from speciesList
 	val(auto_ss_files) from fourDSitesAuto.collect()
@@ -170,6 +182,9 @@ process neutralModelAutosomes {
 
 	// publishDir params.outdir, mode: "copy", overwrite: true
 
+	errorStrategy 'retry'
+	maxRetries 3
+
 	input: 
 	file(tree) from prunedTree
 	file(four_d_sites) from autoFourDSitesAgg
@@ -192,6 +207,9 @@ process neutralModelNonAutosomes {
 	tag "Generating neutral models for non-autosomes"
 
 	// publishDir params.outdir, mode: "copy", overwrite: true
+
+	errorStrategy 'retry'
+	maxRetries 3
 
 	input:
 	file(tree) from prunedTree
@@ -222,6 +240,9 @@ process modifyAutoBaseFrequencies {
 
 	// publishDir params.outdir, mode: "copy", overwrite: true
 
+	errorStrategy 'retry'
+	maxRetries 3
+
 	input:
 	file(prelim_neutral_model) from autoNeutralModelPrelim
 
@@ -244,6 +265,9 @@ process modifyNonAutoBaseFrequencies {
 	tag "Modifying base frequencies of neutral models for non-autosome ${chrom} "
 
 	// publishDir params.outdir, mode: "copy", overwrite: true
+
+	errorStrategy 'retry'
+	maxRetries 3
 
 	input:
 	file(prelim_neutral_model) from nonAutoNeutralModelPrelim
@@ -268,6 +292,9 @@ process modifyNonAutoBaseFrequencies {
 
 process maskSpeciesOfInterest {
 	tag "Masking ${params.species_of_interest} for ${chrom}."
+
+	errorStrategy 'retry'
+	maxRetries 3
 
 	input:
 	file(species_maf) from speciesMafTwo
@@ -317,6 +344,9 @@ process callAutosomalConservedElements {
 
 	// publishDir params.outdir, mode: "copy", overwrite: true
 
+	errorStrategy 'retry'
+	maxRetries 3
+
 	input:
 	file(masked_maf) from maskedMafsAuto
 	file(neutral_model) from autoNeutralModelOne
@@ -338,6 +368,9 @@ process callNonAutosomalConservedElements {
 	tag "Identifying conserved loci on non-autosomal ${chrom}."
 
 	// publishDir params.outdir, mode: "copy", overwrite: true
+
+	errorStrategy 'retry'
+	maxRetries 3
 
 	input:
 	set val(chrom), file(masked_maf), file(neutral_model) from nonAutoMaskedNeutral
@@ -489,6 +522,9 @@ phastConsSplitNonAutoMafNeutral = phastConsSplitNonAuto.combine(speciesMafChromN
 process accRegionsAutosomal {
 	tag "Identifying accelerated regions on autosomes"
 
+	errorStrategy 'retry'
+	maxRetries 3
+
 	input:
 	set val(chrom), file(phastcons), file(unmasked_maf), file(neutral_model) from phastConsSplitAutoMafNeutral
 
@@ -509,6 +545,9 @@ process accRegionsAutosomal {
 
 process accRegionsNonAutosomal {
 	tag "Identifying accelerated regions on non-autosomes"
+
+	errorStrategy 'retry'
+	maxRetries 3
 
 	input:
 	set val(chrom), file(phastcons), file(unmasked_maf), file(neutral_model) from phastConsSplitNonAutoMafNeutral
