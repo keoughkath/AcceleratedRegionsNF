@@ -13,5 +13,4 @@ dependencies:
   - numpy
   - rpy2
   - pybedtools
-prefix: /pollard/home/kathleen/miniconda3/envs/ucsc_tool_env
 
