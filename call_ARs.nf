@@ -309,7 +309,7 @@ process maskSpeciesOfInterest {
 	//
 	chrom = species_maf.simpleName.split('_')[0]
 	"""
-	${params.phast_path}./maf_parse --features ${chrom_bed_path}/${params.species_of_interest}_${chrom}.bed --mask-features ${params.species_of_interest} ${species_maf} > ${chrom}_${params.species_of_interest}_masked.maf
+	${params.phast_path}./maf_parse --features ${chrom_bed_path}/hg38_${chrom}.bed --mask-features ${params.species_of_interest} ${species_maf} > ${chrom}_${params.species_of_interest}_masked.maf
 	"""
 }
 
