@@ -1,4 +1,4 @@
-VERSION = "0.0.0"
+VERSION = "0.0.1"
 
 // parse inputs
 
@@ -12,10 +12,12 @@ syntenyFilterFileMouse = file(params.synteny_filter_mouse)
 arFilterFile = file(params.ar_filters_path)
 
 /*
-* set up channels for each chromosome for parallelization
+* set up channels for each chromosome for parallelization, filter out non-standard chromosome MAFs
 */
 
-initMafChannel = Channel.fromPath( "${params.maf_path}chr*.maf.gz" )
+initMafChannel = Channel.fromPath( "${params.maf_path}chr*.maf.gz" ).filter( ~/.*chr.{1,2}\.maf\.gz/ )
+
+initMafChannel.subscribe onNext: { println it }
 
 /*
 * extract the species of interest from the overall MAF
@@ -47,9 +49,9 @@ process extractSpecies {
 
 }
 
-// copy speciesMaf into 4 channels to use in 4 processes
+// copy speciesMaf into 5 channels to use in 5 processes
 
-speciesMaf.into { speciesMafOne; speciesMafTwo; speciesMafThree; speciesMafFour }
+speciesMaf.into { speciesMafOne; speciesMafTwo; speciesMafThree; speciesMafFour; speciesMafFive; speciesMafSix }
 
 /*
 * prune the species tree to reflect only the species of interest
@@ -238,7 +240,7 @@ process neutralModelNonAutosomes {
 process modifyAutoBaseFrequencies {
 	tag "Modifying base frequencies of neutral models for autosomes"
 
-	// publishDir params.outdir, mode: "copy", overwrite: true
+	publishDir params.outdir, mode: "copy", overwrite: true
 
 	errorStrategy 'retry'
 	maxRetries 3
@@ -264,7 +266,7 @@ autoNeutralModel.into { autoNeutralModelOne; autoNeutralModelTwo }
 process modifyNonAutoBaseFrequencies {
 	tag "Modifying base frequencies of neutral models for non-autosome ${chrom} "
 
-	// publishDir params.outdir, mode: "copy", overwrite: true
+	publishDir params.outdir, mode: "copy", overwrite: true
 
 	errorStrategy 'retry'
 	maxRetries 3
@@ -391,10 +393,10 @@ process callNonAutosomalConservedElements {
 
 phastCons = autoPhastConsElements.concat(nonAutoPhastConsElements)
 
-/*
+
 * grab phastCons form regions that are syntenic
 * with user-identified species
-*/
+
 
 process syntenyFilterPhastCons {
 	tag "Synteny filtering phastCons from ${chrom}"
@@ -455,7 +457,7 @@ process phastconsSizeFilter {
 	file(phastcons) from phastConsFiltered
 
 	output:
-	file("*_phastcons_filtered.bed") into phastConsSizeFiltered
+	file("*_phastcons_filtered.bed") into phastConsSizeFilteredPreID
 
 	script:
 	chrom = phastcons.simpleName.split('_')[0]
@@ -464,7 +466,119 @@ process phastconsSizeFilter {
 	"""
 }
 
-// phastConsSizeFiltered.subscribe { println it.size() }
+/*
+* add ID to phastCons, necessary for extracting MAFs
+*/
+
+process idToPhastcons {
+	tag "Adding ID to phastCons from ${chrom}"
+
+	// publishDir params.outdir, mode: "copy", overwrite: true
+
+	input:
+	file(phastcons) from phastConsSizeFilteredPreID
+
+	output:
+	file("*_phastcons_filtered_id.bed") into phastConsSizeFilteredPreSpecies
+
+	script:
+	chrom = phastcons.simpleName.split('_')[0]
+	"""
+	awk -F'\t' -v OFS='\t' '{ \$(NF+1)=\$1"_"NR} 1' ${phastcons} > ${chrom}_phastcons_filtered_id.bed
+	"""
+
+}
+
+// map MAFs to phastCons MSA dirs by chromosome
+
+
+phastConsSizeFilteredSplit = phastConsSizeFilteredPreSpecies.flatten().filter{ it.size()>0 }.map {
+	file -> tuple(file.simpleName.split('_')[0], file)
+}
+
+phastConsSizeFilteredSplit.into{ phastConsSizeFilteredSplitOne; phastConsSizeFilteredSplitTwo } // filters out any instances where filtering has removed all phastCons, e.g. chrY
+
+speciesMafChrom = speciesMafFive.map {
+	file -> tuple(file.simpleName.split('_')[0], file)
+}
+
+phastConsSizeFilteredSpeciesMaf = phastConsSizeFilteredSplitOne.combine(speciesMafChrom, by: 0)
+
+/* 
+* extract phastCons MSAs for species filtering
+*/
+
+process extractPhastconsMSAs {
+	tag "Extracting MSAs for phastCons towards species filtering for ${chrom}"
+
+	// publishDir params.outdir, mode: "copy", overwrite: true
+
+	input:
+	set val(chrom), file(phastcons), file(species_maf) from phastConsSizeFilteredSpeciesMaf
+
+	output:
+	file("${chrom}_phastcons_msas") into phastconsMSAs
+
+	script:
+	"""
+	/pollard/home/kathleen/tools/ucsc_tools/mafsInRegion ${phastcons} -outDir ${chrom}_phastcons_msas/ ${species_maf}
+	"""
+}
+
+/*
+* convert MSAs to SS format
+*/
+
+process convertMafToSS {
+	tag "Converting MAF to SS for ${chrom}"
+
+	// publishDir params.outdir, mode: "copy", overwrite: true
+
+	input:
+	file(phastcons_maf) from phastconsMSAs.collect().flatten()
+
+	output:
+	file("${chrom}_phastcons_msas_SS") into phastconsSSs
+
+	script:
+	filename = phastcons_maf.simpleName
+	chrom = filename.split('_')[0]
+	"""
+	mkdir -p ${chrom}_phastcons_msas_SS
+	ls ${phastcons_maf}/*.maf | rev | cut -d'/' -f1 | rev | parallel -j 10 /pollard/home/kathleen/tools/phast_git/phast/bin/./msa_view ${phastcons_maf}/{} -i MAF -o SS '>' ${chrom}_phastcons_msas_SS/{.}.ss
+	"""
+
+}
+
+// map SS dirs to phastCons by chromosome
+
+speciesSSChrom = phastconsSSs.map {
+	file -> tuple(file.simpleName.split('_')[0], file)
+}
+
+phastConsSizeFilteredSpeciesSS = phastConsSizeFilteredSplitTwo.combine(speciesSSChrom, by: 0)
+
+/*
+* filter phastCons with less than a specified number of species represented
+*/
+
+process phastconsSpeciesFilter {
+	tag "Filtering phastCons from ${chrom} for n_species > ${params.min_n_species}"
+
+	// publishDir params.outdir, mode: "copy", overwrite: true
+
+	input:
+	set val(chrom), file(phastcons), file(msas_dir) from phastConsSizeFilteredSpeciesSS
+
+	output:
+	file("*_phastcons_species_filtered.bed") into phastConsSpeciesFiltered
+
+	script:
+	"""
+	python ${baseDir}/filter_phastcons_nspecies.py ${phastcons} ${msas_dir} ${params.min_n_species} ${chrom}_phastcons_species_filtered.bed
+	"""
+
+}
 
 /*
 * split phastCons elements into multiple files on which to run phyloP in order to speed the process up 
@@ -474,7 +588,7 @@ process splitPhastCons {
 	tag "Splitting up phastCons from ${chrom} to speed up phyloP"
 
 	input:
-	file(phastcons) from phastConsSizeFiltered.filter{ it.size()>0 } // filters out any instances where filtering has removed all phastCons, e.g. chrY
+	file(phastcons) from phastConsSpeciesFiltered.filter{ it.size()>0 } // filters out any instances where filtering has removed all phastCons, e.g. chrY
 
 	output:
 	file("*.bed") into phastConsSplit
@@ -516,7 +630,7 @@ phastConsSplitNonAutoMafNeutral = phastConsSplitNonAuto.combine(speciesMafChromN
 
 
 /*
-* run phyloP to identify accelerated elements
+* run phyloP to identify accelerated elements, autosomes
 */
 
 process accRegionsAutosomal {
@@ -541,6 +655,10 @@ process accRegionsAutosomal {
 	${params.phast_path}./phyloP --features ${phastcons} --msa-format MAF --method LRT --mode ACC --subtree ${params.species_of_interest} -g ${neutral_model} ${unmasked_maf}
 	"""
 }
+
+/*
+* run phyloP to identify accelerated elements, non-autosomes
+*/
 
 
 process accRegionsNonAutosomal {
@@ -570,8 +688,9 @@ process accRegionsNonAutosomal {
 
 phastConsScored = phyloPResultsAuto.concat(phyloPResultsNonAuto).collectFile(name: 'phyloP_results.txt')
 
-
-// multiple test correction with Benjamini-Hochberg methodology
+/*
+* multiple test correction with Benjamini-Hochberg methodology
+*/
 
 
 process multipleTestCorrectionFiltering {
