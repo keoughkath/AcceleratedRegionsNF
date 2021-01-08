@@ -37,6 +37,14 @@ def get_n_species(row, ssdir):
         n_species = int(f.readline().split(' = ')[-1])
     return(n_species)
 
+# # check for presence of defined species
+
+# def check_species(row, ssdir, species_list):
+#     uid = row['name']
+#     with open(os.path.join(ssdir, f'{uid}.ss'), 'r') as f:
+#         species = f.readlines()[4].split(' = ')[1].split(',')
+#     return(len(set(species_list) - set(species)) == 0)
+
 """
 MAIN
 """
@@ -48,6 +56,7 @@ def main():
     phastcons_path = args['<phastcons_path>']
     ss_dir = args['<ss_dir>'] 
     min_n_species = int(args['<min_n_species>'])
+    # species_list = args['<species_list>']
 
     # load phastCons
 
@@ -57,6 +66,10 @@ def main():
     # get # of species per phastCons MSA
 
     phastcons['n_species'] = phastcons.apply(lambda row: get_n_species(row, ss_dir), axis=1)
+
+    # check for presence of specified species
+
+    # phastcons['species_present'] = phastcons.apply(lambda row: check_species(row, ss_dir, species_list), axis=1)
 
     # filter phastcons for those that have greater than specified # of species
 

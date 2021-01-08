@@ -1,0 +1,20 @@
+# typical project.yml template
+# make a copy of this for each project and adjust the parameters accordingly
+
+species: "zoonomia/list_species.txt"
+maf_path: "zoonomia/mafs_rbest/"
+phast_path: "phast_git/phast/bin/"
+outdir: "zoonomia/zoo_hars_full/"
+init_tree: "zoonomia/trees/200Mammals_X_lessGC40_75consensus_bif.nh"
+species_of_interest: "Homo_sapiens"
+chrom_bed_path: "hg38/chrom_beds/"
+synteny_filter_path: "har_filters/chain_bed_files/"
+ar_filters_path: "har_filters/har_filters.sorted.bed.gz"
+n_phylop_chunks: "10"
+max_p: "0.05"
+random_seed: "7"
+target_coverage: "0.05"
+expected_length: "45"
+auto_neutral_model: "zoonomia/zoonomia_neutral_model/cactus_200m_autosomal_V2_mdong.mod"
+nonauto_neutral_model: "zoonomia/zoonomia_neutral_model/"
+min_decile: "3"
