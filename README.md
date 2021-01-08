@@ -9,6 +9,10 @@ Changes as of 8 January 2021:
 * the neutral model is now a parameter you add, so you can use a neutral model defined by multiple methods, e.g. 4D sites or ancestral repeats
 * this pipeline will now work on MAFs chunked e.g. into 10Mb blocks, as the Zoonomia files are formatted, hopefully saving on memory during compute
 
+General notes:
+* this pipeline requires a rooted, bifurcating tree
+* the neutral model filenames for non-autosomes must be formatted as e.g. `chrX.neutral.mod`, specifically they must start with "chr\*." and end with ".mod"
+
 How to call accelerated regions with this pipeline:
 
 1.) clone the repo
