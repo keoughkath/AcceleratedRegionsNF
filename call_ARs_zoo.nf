@@ -167,7 +167,7 @@ process callNonAutosomalConservedElements {
 	maxRetries 3
 
 	input:
-	set file(masked_maf) from maskedMafsNonAuto
+	file(masked_maf) from maskedMafsNonAuto
 
 	output:
 	file("${fname}_phastCons_unfilt.bed") into nonAutoPhastConsElements
@@ -206,7 +206,7 @@ process filterByScore {
 	chrom = phastcons.simpleName
 	fname = phastcons.baseName
 	"""
-	python ${baseDir}/bin/score_filter_phastcons.py ${phastcons} ${fname}_phastcons_score_filtered.bed
+	python ${baseDir}/bin/score_filter_phastcons.py ${phastcons} ${fname}_phastcons_score_filtered.bed ${params.min_decile}
 	"""
 }
 
