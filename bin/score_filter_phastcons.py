@@ -20,7 +20,7 @@ import os
 
 """
 Developed by Kathleen Keough, Pollard Lab @ Gladstone
-2020
+2021
 """
 
 
@@ -32,6 +32,7 @@ def score_filter(indf, min_decile):
 	indf['size'] = indf['end'] - indf['start']
 	indf['score_norm'] = indf['score'] / indf['size']
 	indf['decile'] = pd.qcut(indf['score_norm'], 10, labels=False)
+	min_decile = min_decile - 1.0 # account for zero-based indexing in python
 	return(indf.query('decile > @min_decile')[['chrom','start','end','name']])
 
 def main():

@@ -1,4 +1,4 @@
-VERSION = "0.0.2"
+VERSION = "0.0.3"
 
 // parse inputs
 
@@ -8,10 +8,6 @@ speciesList = speciesFile.readLines().join(",")
 chromBedPath = file(params.chrom_bed_path)
 syntenyFiles = Channel.fromPath( "${params.synteny_filter_path}*.bed" )
 arFilterFile = file(params.ar_filters_path)
-// autoNeutralModel = Channel.fromPath( params.auto_neutral_model )
-// nonAutoNeutralModels = Channel.fromPath( "${params.nonauto_neutral_model}*.mod" )
-
-// autoNeutralModel.into { autoNeutralModelOne; autoNeutralModelTwo }
 
 /*
 * set up channels for each chromosome for parallelization, filter out non-standard chromosome MAFs
@@ -50,9 +46,9 @@ process extractSpecies {
 
 }
 
-// copy speciesMaf into 5 channels to use in 5 processes
+// copy speciesMaf into 4 channels to use in 4 processes
 
-speciesMaf.into { speciesMafOne; speciesMafTwo; speciesMafThree; speciesMafFour; speciesMafFive }
+speciesMaf.into { speciesMafOne; speciesMafTwo; speciesMafThree; speciesMafFour }
 
 /*
 * prune the species tree to reflect only the species of interest
@@ -112,22 +108,6 @@ maskedMaf.into { maskedMafOne; maskedMafTwo }
 maskedMafsAuto = maskedMafOne.filter( ~/.*chr\d.*/ )
 maskedMafsNonAuto = maskedMafTwo.filter( ~/.*chr[X Y M].*/ )
 
-// join non-autosomal neutral model and masked_maf channels for non-autosomes so they are coordinated
-
-// maskedMafsNonAutoChr = maskedMafsNonAuto.map {
-// 	file -> tuple(file.simpleName, file)
-// }
-
-// nonAutoNeutralModelsChr = nonAutoNeutralModels.filter( ~/.*chr[X Y M].*/ ).map {
-// 	file -> tuple(file.simpleName, file)
-// }
-
-// nonAutoNeutralModelsChr.into { nonAutoNeutralModelsChrOne; nonAutoNeutralModelsChrTwo }
-
-// nonAutoMaskedNeutral = maskedMafsNonAutoChr.join(nonAutoNeutralModelsChrOne)
-
-// maskedMafsAuto.subscribe { println it }
-
 /*
 * run phastCons to identify elements conserved 
 */
@@ -142,7 +122,6 @@ process callAutosomalConservedElements {
 
 	input:
 	file(masked_maf) from maskedMafsAuto
-	// file(neutral_model) from autoNeutralModelOne
 
 	output:
 	file("*_phastCons_unfilt.bed") into autoPhastConsElements
@@ -154,7 +133,7 @@ process callAutosomalConservedElements {
 	chrom = masked_maf.simpleName
 	fname = masked_maf.baseName
 	"""
-	${params.phast_path}./phastCons ${masked_maf} ${params.auto_neutral_model} --rho 0.3 --target-coverage ${params.target_coverage} --expected-length ${params.expected_length} --no-post-probs --score --viterbi ${fname}_phastCons_unfilt.bed --seqname ${chrom} -i MAF
+	${params.phast_path}./phastCons ${masked_maf} ${params.auto_neutral_model} --rho ${params.rho} --target-coverage ${params.target_coverage} --expected-length ${params.expected_length} --no-post-probs --score --viterbi ${fname}_phastCons_unfilt.bed --seqname ${chrom} -i MAF
 	"""
 }
 
@@ -179,15 +158,13 @@ process callNonAutosomalConservedElements {
 	fname = masked_maf.baseName
 	chrom = masked_maf.simpleName
 	"""
-	${params.phast_path}./phastCons ${masked_maf} ${params.nonauto_neutral_model}${chrom}.neutral.mod --rho 0.3 --target-coverage ${params.target_coverage} --expected-length ${params.expected_length} --no-post-probs --score --viterbi ${fname}_phastCons_unfilt.bed --seqname ${chrom} -i MAF
+	${params.phast_path}./phastCons ${masked_maf} ${params.nonauto_neutral_model}${chrom}.neutral.mod --rho ${params.rho} --target-coverage ${params.target_coverage} --expected-length ${params.expected_length} --no-post-probs --score --viterbi ${fname}_phastCons_unfilt.bed --seqname ${chrom} -i MAF
 	"""
 }
 
 // merge autosomal and non-autosomal phastCons channels and filter instances where there aren't any conserved elements
 
 phastCons = autoPhastConsElements.concat(nonAutoPhastConsElements).filter{ it.size()>0 }
-
-// would be good here to merge phastCons from different windows on same chromosome...
 
 /*
 * filter phastCons by log-odds score
@@ -308,27 +285,6 @@ process idToPhastcons {
 
 }
 
-// /*
-// * split phastCons elements into multiple files on which to run phyloP in order to speed the process up 
-// */
-
-// process splitPhastCons {
-// 	tag "Splitting up phastCons from ${fname} to speed up phyloP"
-
-// 	input:
-// 	file(phastcons) from phastConsSizeFiltered.filter{ it.size()>0 } // filters out any instances where filtering has removed all phastCons, e.g. chrY
-
-// 	output:
-// 	file("*.bed") into phastConsSplit
-
-// 	script:
-// 	chrom = phastcons.simpleName
-// 	fname = phastcons.baseName
-// 	"""
-// 	bedtools split -i ${phastcons} -n ${params.n_phylop_chunks} -p ${fname}_ -a simple
-// 	"""
-// }
-
 // join neutral model, split phastCons elements and unmasked MAF channels so they are coordinated
 
 phastConsSplit = phastConsSizeFiltered.filter{ it.size()>0 } // filters out any instances where filtering has removed all phastCons, e.g. chrY
@@ -343,13 +299,9 @@ speciesMafChromAuto = speciesMafThree.filter( ~/.*chr\d.*/ ).map {
 	file -> tuple(file.baseName.split(/.maf/)[0], file)
 }
 
-phastConsSplitAutoMaf = phastConsSplitAuto.combine(speciesMafChromAuto, by: 0)//.combine(autoNeutralModelTwo)
-
-// phastConsSplitAutoMaf.subscribe { println it }
-
+phastConsSplitAutoMaf = phastConsSplitAuto.combine(speciesMafChromAuto, by: 0)
 
 // non-autosomes
-
 
 phastConsSplitNonAuto = phastConsSplitTwo.flatten().filter( ~/.*chr[X Y M].*/ ).map {
 	file -> tuple(file.baseName.split(/_phastcons/)[0], file)
@@ -359,9 +311,7 @@ speciesMafChromNonAuto = speciesMafFour.filter( ~/.*chr[X Y M].*/ ).map {
 	file -> tuple(file.baseName.split(/.maf/)[0], file)
 }
 
-phastConsSplitNonAutoMaf = phastConsSplitNonAuto.combine(speciesMafChromNonAuto, by: 0)//.combine(nonAutoNeutralModelsChrTwo, by: 0)
-
-// phastConsSplitNonAutoMaf.subscribe { println it }
+phastConsSplitNonAutoMaf = phastConsSplitNonAuto.combine(speciesMafChromNonAuto, by: 0)
 
 
 /*
