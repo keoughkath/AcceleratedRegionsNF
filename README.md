@@ -23,4 +23,4 @@ How to call accelerated regions with this pipeline:
 
 4.) adjust the nextflow config file to match your operating environment (optionally add an additional config file to match a parallel system such as SGE)
 
-5.) run the pipeline (sample command: `nextflow run call_ARs_zoo.nf -w "zoonomia/zoo_hars_full/" -profile sge -params-file human_all_species_zoo_full_run2.yml`)
+5.) run the pipeline (sample command: `nextflow run call_ARs_zoo.nf -w "hars_workdir/" -profile sge -params-file zoonomia_example_human.yml`)
