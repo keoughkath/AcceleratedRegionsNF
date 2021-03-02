@@ -1,6 +1,7 @@
 name: ARs_conda_env
 channels:
   - defaults
+  - bioconda
 dependencies:
   - docopt
   - rpy2
