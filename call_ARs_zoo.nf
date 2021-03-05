@@ -97,7 +97,7 @@ process maskSpeciesOfInterest {
 	fname = species_maf.baseName
 	chrom = species_maf.simpleName
 	"""
-	${params.phast_path}./maf_parse --features ${chrom_bed_path}/hg38_${chrom}.bed --mask-features ${params.species_of_interest} ${species_maf} > ${fname}_${params.species_of_interest}_masked.maf
+	${params.phast_path}./maf_parse --features ${chrom_bed_path}/${chrom}.bed --mask-features ${params.species_of_interest} ${species_maf} > ${fname}_${params.species_of_interest}_masked.maf
 	"""
 }
 
