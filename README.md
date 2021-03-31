@@ -33,7 +33,7 @@ Please refer to [Pollard et al. 2006](https://www.nature.com/articles/nature0511
 * <ins>min_decile</ins>: length-normalized log odds score threshold for phastCons elements, a higher decile indicates higher conservation (in general) see [Siepel et al. 2005](https://pubmed.ncbi.nlm.nih.gov/16024819/) and [phastCons documentation](http://compgen.cshl.edu/phast/help-pages/phastCons.txt) for more details
 
 4.) adjust the nextflow config file to match your operating environment (we have provided a sample config for an SGE system)
-* change the path to "process.conda" so it matches the location of your installation of the `ARs_conda_env`
+* change the path for `process.conda` so it matches the location of your installation of the `ARs_conda_env`
 * adjust the path for `errorDir`
 
 5.) run the pipeline (sample command: `nextflow run call_ARs_zoo.nf -w "hars_workdir/" -profile sge -params-file zoonomia_example_human.yml`)
