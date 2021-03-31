@@ -9,7 +9,9 @@ Please refer to [Pollard et al. 2006](https://www.nature.com/articles/nature0511
 
 1.) clone the repo
 
-2.) install the Conda environment contained in the repo (ARs_conda.yml)
+2.) install the Conda environment contained in the repo (ARs_conda_env.yml)
+
+`conda env create -f ARs_conda_env.yml`
 
 3.) make a copy of and adapt the project file (example: zoonomia_example_human.yml) to fit your project goals
 * species: a newline-delimited list of species in a text file for inclusion in the analysis, this can be a subset of or all the species in your multiple alignment
