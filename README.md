@@ -29,7 +29,7 @@ Please refer to [Pollard et al. 2006](https://www.nature.com/articles/nature0511
 * <ins>expected_length</ins>: phastCons parameter (aka omega) that indicates the expected length of conserved elements
 * <ins>rho</ins>: phastCons scaling parameter indicating how to scale the neutral tree to obtain the conserved tree (see [Siepel et al. 2005](https://pubmed.ncbi.nlm.nih.gov/16024819/) for more details)
 * <ins>auto_neutral_model</ins>: path to the neutral model for autosomes (not ending in "X", "Y", or "M", so this may need to be adjusted for some species) in ".mod" format
-* <ins>nonauto_neutral_model</ins>: path to the neutral model for non-autosomes (ending in "X", "Y", or "M", so this may need to be adjusted for some species) in ".mod" format
+* <ins>nonauto_neutral_model</ins>: path to a directory containing the neutral models for non-autosomes (ending in "X", "Y", or "M", so this may need to be adjusted for some species) in ".mod" format, these should be named e.g. "chrX.mod"
 * <ins>min_decile</ins>: length-normalized log odds score threshold for phastCons elements, a higher decile indicates higher conservation (in general) see [Siepel et al. 2005](https://pubmed.ncbi.nlm.nih.gov/16024819/) and [phastCons documentation](http://compgen.cshl.edu/phast/help-pages/phastCons.txt) for more details
 
 4.) adjust the nextflow config file to match your operating environment (we have provided a sample config for an SGE system)
