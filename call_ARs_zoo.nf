@@ -336,7 +336,7 @@ process accRegionsAutosomal {
 	//
 	chrom = phastcons.simpleName
 	"""
-	${params.phast_path}./phyloP --features ${phastcons} --msa-format MAF --method LRT --mode ACC --subtree ${params.species_of_interest} -g ${params.auto_neutral_model} ${species_maf}
+	${params.phast_path}./phyloP --features ${phastcons} --msa-format MAF --method LRT --mode ACC --subtree ${params.species_of_interest} -d ${params.random_seed} -g ${params.auto_neutral_model} ${species_maf}
 	"""
 }
 
@@ -363,7 +363,7 @@ process accRegionsNonAutosomal {
 	//
 	chrom = phastcons.simpleName
 	"""
-	${params.phast_path}./phyloP --features ${phastcons} --msa-format MAF --method LRT --mode ACC --subtree ${params.species_of_interest} -g ${params.nonauto_neutral_model}${chrom}.neutral.mod ${species_maf}
+	${params.phast_path}./phyloP --features ${phastcons} --msa-format MAF --method LRT --mode ACC --subtree ${params.species_of_interest} -d ${params.random_seed} -g ${params.nonauto_neutral_model}${chrom}.neutral.mod ${species_maf}
 	"""
 
 }
