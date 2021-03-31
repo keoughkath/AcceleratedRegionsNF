@@ -32,6 +32,6 @@ Please refer to [Pollard et al. 2006](https://www.nature.com/articles/nature0511
 
 4.) adjust the nextflow config file to match your operating environment (we have provided a sample config for an SGE system)
 * change the path to "process.conda" so it matches the location of your installation of the `ARs_conda_env`
-* adjust the paths for `-e` and `-o`
+* adjust the path for `errorDir`
 
 5.) run the pipeline (sample command: `nextflow run call_ARs_zoo.nf -w "hars_workdir/" -profile sge -params-file zoonomia_example_human.yml`)
