@@ -37,3 +37,7 @@ Please refer to [Pollard et al. 2006](https://www.nature.com/articles/nature0511
 * adjust the path for `errorDir`
 
 5.) run the pipeline (sample command: `nextflow run call_ARs_zoo.nf -w "hars_workdir/" -profile sge -params-file zoonomia_example_human.yml`)
+
+**Outputs**
+
+If the pipeline successfully runs, it will output two files, final_ARs_(random_seed).bed and scored_phastCons_(random_seed).txt, which are a BED file of the accelerated regions and a tab-separated file of the filtered, acceleration-scored phastCons which can be useful in statistical analyses as null models or if you want to reselect HARs at a different FDR. 
