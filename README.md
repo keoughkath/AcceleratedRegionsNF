@@ -18,7 +18,7 @@ Please refer to [Pollard et al. 2006](https://www.nature.com/articles/nature0511
 * <ins>maf_path</ins>: the path to your multiple alignment files which must be in [MAF format](https://genome.ucsc.edu/FAQ/FAQformat.html#format5)
 * <ins>phast_path</ins>: path to your installation of PHAST, this is specified because we recommend using [the Github version of PHAST](https://github.com/CshlSiepelLab/phast) and this way you don't have to alter your $PATH
 * <ins>outdir</ins>: where you want the outputted files to be saved
-* <ins>init_tree</ins>: a rooted, bifurcating tree
+* <ins>init_tree</ins>: a rooted, bifurcating, Newick-formatted tree
 * <ins>species_of_interest</ins>: the species in which you want to identify lineage-specific accelerated elements
 * <ins>chrom_bed_path</ins>: BED files specifying the size of each chromosome analyzed in the reference frame of the MAF reference sequence, these should be named as e.g. "chrX.bed"
 * <ins>synteny_filter_path</ins>: path to the directory containing BED-formatted (not gzipped) syntenic regions that will be intersected with the phastCons (1 or more files should be in this directory)
@@ -37,3 +37,7 @@ Please refer to [Pollard et al. 2006](https://www.nature.com/articles/nature0511
 * adjust the path for `errorDir`
 
 5.) run the pipeline (sample command: `nextflow run call_ARs_zoo.nf -w "hars_workdir/" -profile sge -params-file zoonomia_example_human.yml`)
+
+**Outputs**
+
+If the pipeline successfully runs, it will output two files, final_ARs_(random_seed).bed and scored_phastCons_(random_seed).txt, which are a BED file of the accelerated regions and a tab-separated file of the filtered, acceleration-scored phastCons which can be useful in statistical analyses as null models or if you want to reselect HARs at a different FDR. 
