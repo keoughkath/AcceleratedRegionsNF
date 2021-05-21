@@ -32,7 +32,7 @@ process extractSpecies {
 	file(initMaf) from initMafChannel
 
 	output:
-	file("*_species.maf") into speciesMaf
+	file("*.maf") into speciesMaf
 
 	script:
 	//
@@ -41,39 +41,18 @@ process extractSpecies {
 	chrom = initMaf.simpleName
 	fname = initMaf.baseName
 	"""
-	mafSpeciesSubset ${params.maf_path}${initMaf} ${species_list_file} ${fname}_species.maf
+	mafSpeciesSubset ${params.maf_path}${initMaf} ${species_list_file} ${fname}
 	"""
 
 }
 
 // copy speciesMaf into 4 channels to use in 4 processes
 
-speciesMaf.into { speciesMafOne; speciesMafTwo; speciesMafThree; speciesMafFour }
-
 /*
-* prune the species tree to reflect only the species of interest
+* mask the species of interest
 */
 
-process pruneTree {
-	tag "Pruning the species tree"
-
-	// publishDir params.outdir, mode: "copy", overwrite: false
-
-	input:
-	file(tree) from initTree
-	val(species_list) from speciesList
-
-	output:
-	file("pruned_tree.nh") into prunedTree
-
-	script:
-	// 
-	// tree_doctor from PHAST
-	//
-	"""
-	${params.phast_path}./tree_doctor -P ${species_list} ${tree} > pruned_tree.nh
-	"""
-}
+speciesMaf.into { speciesMafOne; speciesMafTwo; speciesMafThree; speciesMafFour }
 
 process maskSpeciesOfInterest {
 	tag "Masking ${params.species_of_interest} for ${fname}."
@@ -88,7 +67,7 @@ process maskSpeciesOfInterest {
 	val(chrom_bed_path) from chromBedPath
 
 	output:
-	file("*_${params.species_of_interest}_masked.maf") into maskedMaf
+	file("*.maf") into maskedMaf
 
 	script:
 	//
@@ -97,7 +76,7 @@ process maskSpeciesOfInterest {
 	fname = species_maf.baseName
 	chrom = species_maf.simpleName
 	"""
-	${params.phast_path}./maf_parse --features ${chrom_bed_path}/${chrom}.bed --mask-features ${params.species_of_interest} ${species_maf} > ${fname}_${params.species_of_interest}_masked.maf
+	${params.phast_path}./maf_parse --features ${chrom_bed_path}/${chrom}.bed --mask-features ${params.species_of_interest} ${species_maf} > ${fname}_masked.maf
 	"""
 }
 
@@ -124,16 +103,16 @@ process callAutosomalConservedElements {
 	file(masked_maf) from maskedMafsAuto
 
 	output:
-	file("*_phastCons_unfilt.bed") into autoPhastConsElements
+	file("*_unfilt.bed") into autoPhastConsElements
 
 	script:
 	//
-	// phastCons from PHAST - make sure you use the github version :/
+	// phastCons from PHAST - make sure you use the github version
 	//
 	chrom = masked_maf.simpleName
-	fname = masked_maf.baseName
+	fname = masked_maf.baseName.split('_')[0]
 	"""
-	${params.phast_path}./phastCons ${masked_maf} ${params.auto_neutral_model} --rho ${params.rho} --target-coverage ${params.target_coverage} --expected-length ${params.expected_length} --no-post-probs --score --viterbi ${fname}_phastCons_unfilt.bed --seqname ${chrom} -i MAF
+	${params.phast_path}./phastCons ${masked_maf} ${params.auto_neutral_model} --rho ${params.rho} --target-coverage ${params.target_coverage} --expected-length ${params.expected_length} --no-post-probs --score --viterbi ${fname}_phastcons_unfilt.bed --seqname ${chrom} -i MAF
 	"""
 }
 
@@ -149,16 +128,16 @@ process callNonAutosomalConservedElements {
 	file(masked_maf) from maskedMafsNonAuto
 
 	output:
-	file("${fname}_phastCons_unfilt.bed") into nonAutoPhastConsElements
+	file("*_unfilt.bed") into nonAutoPhastConsElements
 
 	script:
 	//
 	// phastCons from PHAST - make sure you use the github version :/
 	//
-	fname = masked_maf.baseName
+	fname = masked_maf.baseName.split('_')[0]
 	chrom = masked_maf.simpleName
 	"""
-	${params.phast_path}./phastCons ${masked_maf} ${params.nonauto_neutral_model}${chrom}.neutral.mod --rho ${params.rho} --target-coverage ${params.target_coverage} --expected-length ${params.expected_length} --no-post-probs --score --viterbi ${fname}_phastCons_unfilt.bed --seqname ${chrom} -i MAF
+	${params.phast_path}./phastCons ${masked_maf} ${params.nonauto_neutral_model}${chrom}.neutral.mod --rho ${params.rho} --target-coverage ${params.target_coverage} --expected-length ${params.expected_length} --no-post-probs --score --viterbi ${fname}_phastcons_unfilt.bed --seqname ${chrom} -i MAF
 	"""
 }
 
@@ -177,13 +156,13 @@ process filterByScore {
 	file(phastcons) from phastCons
 
 	output:
-	file("*_score_filtered.bed") into phastConsScoreFiltered
+	file("*.bed") into phastConsScoreFiltered
 
 	script:
 	chrom = phastcons.simpleName
-	fname = phastcons.baseName
+	fname = phastcons.baseName.split('_')[0]
 	"""
-	python ${baseDir}/bin/score_filter_phastcons.py ${phastcons} ${fname}_phastcons_score_filtered.bed ${params.min_decile}
+	python ${baseDir}/bin/score_filter_phastcons.py ${phastcons} ${fname}_phastcons_score_filt.bed ${params.min_decile}
 	"""
 }
 
@@ -202,13 +181,13 @@ process syntenyFilterPhastCons {
 	file(synteny_file_list) from syntenyFiles.collect()
 
 	output:
-	file("*_phastcons_synteny_filtered.bed") into phastConsSyntenyFiltered
+	file("*.bed") into phastConsSyntenyFiltered
 
 	script:
 	chrom = phastcons.simpleName
-	fname = phastcons.baseName
+	fname = phastcons.baseName.split('_')[0]
 	"""
-	bedops -i ${phastcons} ${synteny_file_list} > ${fname}_phastcons_synteny_filtered.bed
+	bedops -i ${phastcons} ${synteny_file_list} > ${fname}_phastcons_synteny_filt.bed
 	"""
 }
 
@@ -227,13 +206,13 @@ process phastconsDupFilter {
 	file(ar_filters) from arFilterFile
 
 	output:
-	file("*_phastcons_dups_filtered.bed") into phastConsFiltered
+	file("*.bed") into phastConsFiltered
 
 	script:
 	chrom = phastcons.simpleName
-	fname = phastcons.baseName
+	fname = phastcons.baseName.split('_')[0]
 	"""
-	bedtools subtract -a ${phastcons} -b ${ar_filters} | bedtools sort -i - | bedtools merge -d 0 -i - > ${fname}_phastcons_dups_filtered.bed
+	bedtools subtract -a ${phastcons} -b ${ar_filters} | bedtools sort -i - | bedtools merge -d 0 -i - > ${fname}_phastcons_dup_filt.bed
 	"""
 }
 
@@ -251,13 +230,13 @@ process phastconsSizeFilter {
 	file(phastcons) from phastConsFiltered.filter{ it.size()>0 }
 
 	output:
-	file("*_phastcons_filtered.bed") into phastConsSizeFilteredPreID
+	file("*.bed") into phastConsSizeFilteredPreID
 
 	script:
 	chrom = phastcons
-	fname = phastcons.baseName
+	fname = phastcons.baseName.split('_')[0]
 	"""
-	awk '(\$3-\$2) >= 50' ${phastcons} > ${fname}_phastcons_filtered.bed
+	awk '(\$3-\$2) >= 50' ${phastcons} > ${fname}_phastcons_size_filt.bed
 	"""
 }
 
@@ -274,13 +253,13 @@ process idToPhastcons {
 	file(phastcons) from phastConsSizeFilteredPreID.filter{ it.size()>0 }
 
 	output:
-	file("*_phastcons_filtered_id.bed") into phastConsSizeFiltered
+	file("*.bed") into phastConsSizeFiltered
 
 	script:
 	chrom = phastcons.simpleName
-	fname = phastcons.baseName.split(/.maf/)[0]
+	fname = phastcons.baseName.split('_')[0]
 	"""
-	awk -F'\t' -v OFS='\t' '{ \$(NF+1)=\$1"_"NR} 1' ${phastcons} > ${fname}_phastcons_filtered_id.bed
+	awk -F'\t' -v OFS='\t' '{ \$(NF+1)=\$1"_"NR} 1' ${phastcons} > ${fname}_phastcons_id.bed
 	"""
 
 }

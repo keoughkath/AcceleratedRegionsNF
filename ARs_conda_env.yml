@@ -17,4 +17,4 @@ dependencies:
   - parallel
   - ucsc-mafsinregion
   - bedops
-prefix: /wynton/home/pollard/kathleen/miniconda3/envs/ARs_conda_env
+  - openssl=1.0.2p
