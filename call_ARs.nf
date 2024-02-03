@@ -310,9 +310,6 @@ speciesFile = file(params.species)
 chromBedPath = file(params.chrom_bed_path)
 autoNeutralModel = file(params.auto_neutral_model)
 arFilterFile = file(params.ar_filters_path)
-
-// combine synteny files into one file for easier filtering
-// Channel.fromPath( "${params.synteny_filter_path}*.bed", checkIfExists: true ).collect().flatten().collectFile(name: 'synteny_filters.bed', storeDir: params.outdir, sort: false)
 syntenyFilterFile = file(params.synteny_filter_file)
 
 workflow {
