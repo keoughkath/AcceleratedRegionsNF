@@ -1,0 +1,11 @@
+# typical project.yml template
+# make a copy of this for each project and adjust the parameters accordingly
+
+species: "data/20way_species_list.txt"
+maf_path: "data/MAFs/"
+phast_path: "/Users/kathleen/Documents/software/phast/bin/"
+outdir: "human_ars_20way/"
+init_tree: "data/hg38.20way.nh"
+gtf: "data/hg38.ncbiRefSeq.gtf"
+reference_species: "hg38"
+random_seed: 7

@@ -1,12 +1,9 @@
-VERSION = "0.0.0"
+VERSION = "0.0.1"
 
-// parse inputs
-// use species-filtered mafs if you want
+nextflow.enable.dsl = 2
 
-initMafChannel = Channel.fromPath( "${params.maf_path}chr*.maf.gz" ).filter( ~/.*chr.{1,2}\.maf\.gz/ )
-speciesFile = file(params.species)
-speciesList = speciesFile.readLines().join(",")
-initTree = file(params.init_tree)
+// sample run command
+// nextflow run neutral_models_4d.nf -w '20way_nm_workdir/' -profile local -params-file neutral_models_config_20way_example.yml 
 
 /*
 * extract the species of interest from the overall MAF
@@ -15,17 +12,17 @@ initTree = file(params.init_tree)
 process extractSpecies {
 	tag "Extracting species of interest from the MAF for ${initMaf}"
 
-	// publishDir params.outdir, mode: "copy", overwrite: false
+	publishDir params.outdir, mode: "copy", overwrite: false
 
 	errorStrategy 'retry'
 	maxRetries 3
 
 	input:
-	file(species_list_file) from speciesFile
-	file(initMaf) from initMafChannel
+	file(speciesFile)
+	file(initMaf)
 
 	output:
-	file("*_species.maf") into speciesMaf
+	file("*_species.maf")
 
 	script:
 	//
@@ -33,9 +30,8 @@ process extractSpecies {
 	//
 	chrom = initMaf.simpleName
 	"""
-	mafSpeciesSubset ${params.maf_path}${initMaf} ${species_list_file} ${chrom}_species.maf
+	mafSpeciesSubset ${initMaf} ${speciesFile} ${chrom}_species.maf
 	"""
-
 }
 
 /*
@@ -45,28 +41,28 @@ process extractSpecies {
 process extract4dCodons {
 	tag "Extracting 4D codons for ${chrom}"
 
-	// publishDir params.outdir, mode: "copy", overwrite: true
+	publishDir params.outdir, mode: "copy", overwrite: true
 
-	errorStrategy 'retry'
-	maxRetries 3
+	// errorStrategy 'retry'
+	// maxRetries 3
 
 	input:
-	file(maf) from speciesMaf
+	file(speciesMaf)
+	file(gtf)
 
 	output:
-	file("*_4dcodons.ss") into fourDCodons
+	file("*_4dcodons.ss")
 
 	script:
 	// 
 	// msa_view from PHAST
 	//
-	chrom = maf.simpleName.split('_')[0]
+	chrom = speciesMaf.simpleName.split('_')[0]
 	"""
-	${params.phast_path}./msa_view --in-format MAF --out-format SS --4d --features ${params.gtf_path}/${chrom}_refseq_genes_hg38.gtf ${maf} > ${chrom}_4dcodons.ss
+	grep "^${chrom}\t" ${gtf} | sed 's/^/${params.reference_species}./' > ${chrom}.gtf
+	${params.phast_path}./msa_view --in-format MAF --out-format SS --4d --features ${chrom}.gtf ${speciesMaf} > ${chrom}_4dcodons.ss
 	"""
-
 }
-
 
 /*
 * extract 4d sites from 4d codons
@@ -75,35 +71,26 @@ process extract4dCodons {
 process extract4dSites{
 	tag "Extracting 4D sites for ${chrom}"
 
-	// publishDir params.outdir, mode: "copy", overwrite: true
+	publishDir params.outdir, mode: "copy", overwrite: true
 
 	errorStrategy 'retry'
 	maxRetries 3
 
 	input:
-	file(codons) from fourDCodons
+	file(fourDCodons)
 
 	output:
-	file("*_4dsites.ss") into fourDSites
+	file("*_4dsites.ss") 
 
 	script:
 	//
 	// msa_view from PHAST
 	//
-	chrom = codons.simpleName.split('_')[0]
+	chrom = fourDCodons.simpleName.split('_')[0]
 	"""
-	${params.phast_path}./msa_view --in-format SS --out-format SS --tuple-size 1 ${codons} > ${chrom}_4dsites.ss
+	${params.phast_path}./msa_view --in-format SS --out-format SS --tuple-size 1 ${fourDCodons} > ${chrom}_4dsites.ss
 	"""
-
 }
-
-
-// copy fourDSites into 2 channels and filter by autosomes and non-autosomes
-
-fourDSites.into { fourDSitesOne; fourDSitesTwo}
-
-fourDSitesAuto = fourDSitesOne.filter( ~/.*chr\d.*/ )
-fourDSitesNonAuto = fourDSitesTwo.filter( ~/.*chr[X Y].*/ )
 
 /*
 * aggregate 4d sites from autosomes into a single file
@@ -112,27 +99,26 @@ fourDSitesNonAuto = fourDSitesTwo.filter( ~/.*chr[X Y].*/ )
 process aggregateAutosome4dSites {
 	tag "Aggregating 4d sites from autosomes"
 
-	// publishDir params.outdir, mode: "copy", overwrite: true
+	publishDir params.outdir, mode: "copy", overwrite: true
 
 	errorStrategy 'retry'
 	maxRetries 3
 
 	input:
-	val(species_list) from speciesList
-	val(auto_ss_files) from fourDSitesAuto.collect()
+	val(speciesList)
+	file(fourDSitesAuto)
 
 	output:
-	file("autosomes_4dsites.ss") into autoFourDSitesAgg
+	file("autosomes_4dsites.ss")
 
 	script:
 	//
 	// msa_view from PHAST
 	//
-	ss_file_list = auto_ss_files.collect{"$it"}.join(",")
+	ss_file_list = fourDSitesAuto.collect().join(",")
 	"""
-	${params.phast_path}./msa_view --unordered-ss --out-format SS --aggregate ${species_list} ${ss_file_list} > autosomes_4dsites.ss
+	${params.phast_path}./msa_view --unordered-ss --out-format SS --aggregate ${speciesList} ${ss_file_list} > autosomes_4dsites.ss
 	"""
-
 }
 
 /*
@@ -145,18 +131,18 @@ process pruneTree {
 	// publishDir params.outdir, mode: "copy", overwrite: false
 
 	input:
-	file(tree) from initTree
-	val(species_list) from speciesList
+	file(initTree)
+	val(speciesList)
 
 	output:
-	file("pruned_tree.nh") into prunedTree
+	file("pruned_tree.nh")
 
 	script:
 	// 
 	// tree_doctor from PHAST
 	//
 	"""
-	${params.phast_path}./tree_doctor -P ${species_list} ${tree} > pruned_tree.nh
+	${params.phast_path}./tree_doctor -P ${speciesList} ${initTree} > pruned_tree.nh
 	"""
 }
 
@@ -169,24 +155,24 @@ process pruneTree {
 process neutralModelAutosomes {
 	tag "Generating neutral model for autosomes"
 
-	// publishDir params.outdir, mode: "copy", overwrite: true
+	publishDir params.outdir, mode: "copy", overwrite: true
 
 	errorStrategy 'retry'
 	maxRetries 3
 
 	input: 
-	file(tree) from prunedTree
-	file(four_d_sites) from autoFourDSitesAgg
+	file(prunedTree)
+	file(autoFourDSitesAgg)
 
 	output:
-	file('autosomes_neutral_model_prelim.mod') into autoNeutralModelPrelim
+	file('autosomes_neutral_model_prelim.mod')
 
 	script:
 	//
 	// phyloFit from PHAST
 	//
 	"""
-	${params.phast_path}./phyloFit --tree ${tree} --out-root autosomes_neutral_model_prelim --msa-format SS --EM --seed ${params.random_seed} --log autosomes.log ${four_d_sites}
+	${params.phast_path}./phyloFit --tree ${prunedTree} --out-root autosomes_neutral_model_prelim --msa-format SS --EM --seed ${params.random_seed} --log autosomes.log ${autoFourDSitesAgg}
 	"""
 }
 
@@ -201,21 +187,20 @@ process neutralModelNonAutosomes {
 	maxRetries 3
 
 	input:
-	file(tree) from prunedTree
-	file(four_d_sites) from fourDSitesNonAuto
+	file(prunedTree)
+	file(fourDSitesNonAuto)
 
 	output:
-	file('*_neutral_model_prelim.mod') into nonAutoNeutralModelPrelim
+	file('*_neutral_model_prelim.mod') 
 
 	script:
 	//
 	// phyloFit from PHAST
 	//
-	chrom = four_d_sites.simpleName.split('_')[0]
+	chrom = fourDSitesNonAuto.simpleName.split('_')[0]
 	"""
-	${params.phast_path}./phyloFit --tree ${tree} --out-root ${chrom}_neutral_model_prelim --msa-format SS --EM --seed ${params.random_seed} --log ${chrom}.log ${four_d_sites}
+	${params.phast_path}./phyloFit --tree ${prunedTree} --out-root ${chrom}_neutral_model_prelim --msa-format SS --EM --seed ${params.random_seed} --log ${chrom}.log ${fourDSitesNonAuto}
 	"""
-
 }
 
 
@@ -233,21 +218,19 @@ process modifyAutoBaseFrequencies {
 	maxRetries 3
 
 	input:
-	file(prelim_neutral_model) from autoNeutralModelPrelim
+	file(autoNeutralModelPrelim)
 
 	output:
-	file("autosomes.mod") into autoNeutralModel
+	file("autosomes.mod")
 
 	script:
 	//
 	// modFreqs from PHAST
 	//
 	"""
-	${params.phast_path}./modFreqs ${prelim_neutral_model} 0.3 0.2 0.2 0.3 > autosomes.mod
+	${params.phast_path}./modFreqs ${autoNeutralModelPrelim} 0.3 0.2 0.2 0.3 > autosomes.mod
 	"""
 }
-
-autoNeutralModel.into { autoNeutralModelOne; autoNeutralModelTwo }
 
 
 process modifyNonAutoBaseFrequencies {
@@ -259,17 +242,67 @@ process modifyNonAutoBaseFrequencies {
 	maxRetries 3
 
 	input:
-	file(prelim_neutral_model) from nonAutoNeutralModelPrelim
+	file(nonAutoNeutralModelPrelim)
 
 	output:
-	file("*.mod") into nonAutoNeutralModels
+	file("*.mod")
 
 	script:
 	//
 	// modFreqs from PHAST
 	//
-	chrom = prelim_neutral_model.simpleName.split('_')[0]
+	chrom = nonAutoNeutralModelPrelim.simpleName.split('_')[0]
 	"""
-	${params.phast_path}./modFreqs ${prelim_neutral_model} 0.2 0.3 0.3 0.2 > ${chrom}.mod
+	${params.phast_path}./modFreqs ${nonAutoNeutralModelPrelim} 0.2 0.3 0.3 0.2 > ${chrom}.mod
 	"""
 }
+
+// parse inputs
+speciesFile = file(params.species)
+speciesList = speciesFile.readLines().join(",")
+initTree = file(params.init_tree)
+gtf = file(params.gtf)
+
+workflow {
+
+	// set up a channel per chromosome
+	initMaf = Channel.fromPath( "${params.maf_path}chr*.maf.gz" ).filter( ~/.*chr.{1,2}\.maf\.gz/ )
+
+	// filter MAF to only include species of interest
+	extractSpecies(speciesFile, initMaf).set{ speciesMaf }
+
+	// extract the 4d codons from the species-extracted MAF
+	extract4dCodons(speciesMaf, gtf).set{ fourDCodons }
+
+	// extract 4d sites
+	extract4dSites(fourDCodons).set{ fourDSites }
+
+	// filter by autosomes and non-autosomes
+	fourDSitesAuto = fourDSites.filter( ~/.*chr\d.*/ )
+	fourDSitesNonAuto = fourDSites.filter( ~/.*chr[X Y].*/ )
+
+	// aggregate 4d sites from autosomes into a single file
+	aggregateAutosome4dSites(speciesList, fourDSitesAuto).set{ autoFourDSitesAgg }
+
+	// prune the tree to only represent species of interest
+	pruneTree(initTree, speciesList).set{ prunedTree }
+
+	// calculate neutral model for autosomes
+	neutralModelAutosomes(prunedTree, autoFourDSitesAgg).set{ autoNeutralModelPrelim }
+
+	// calculate neutral model for non-autosomes
+	neutralModelNonAutosomes(prunedTree, fourDSitesNonAuto).set{ nonAutoNeutralModelPrelim }
+
+	// change base frequencies in neutral models to reflect the whole genome
+	// rather than just the 4D sites
+	modifyAutoBaseFrequencies(autoNeutralModelPrelim).set{ autoNeutralModel }
+	modifyNonAutoBaseFrequencies(nonAutoNeutralModelPrelim).set{ nonAutoNeutralModel }
+
+
+}
+
+
+
+
+
+

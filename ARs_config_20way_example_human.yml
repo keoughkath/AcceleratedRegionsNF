@@ -1,0 +1,20 @@
+# typical project.yml template
+# make a copy of this for each project and adjust the parameters accordingly
+
+species: "data/20way_species_list.txt"
+maf_path: "data/MAFs/"
+phast_path: "/Users/kathleen/Documents/software/phast/bin/"
+outdir: "human_ars_20way/"
+init_tree: "data/hg38.20way.nh"
+species_of_interest: "hg38"
+chrom_bed_path: "data/chrom_beds"
+synteny_filter_file: "data/synteny_filters/synteny_filters_hg38.sorted.bed"
+ar_filters_path: "data/ENCFF356LFX.bed.gz"
+max_p: "0.05"
+random_seed: "7"
+target_coverage: "0.05"
+expected_length: "45"
+rho: "0.3"
+auto_neutral_model: "data/neutral_models/autosomes.mod"
+nonauto_neutral_model: "data/neutral_models/"
+min_decile: "3"
